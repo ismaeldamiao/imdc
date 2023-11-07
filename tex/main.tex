@@ -1,0 +1,16 @@
+\documentclass[article]{abntex2}
+\input{/home/felipe/imdc/scripts/../tex/configuracao/configurar_abntex.tex}
+\input{/home/felipe/imdc/scripts/../tex/configuracao/configurar_documento.tex}
+\input{/home/felipe/imdc/scripts/../tex/configuracao/configurar_fontes.tex}
+\input{/home/felipe/imdc/scripts/../tex/configuracao/configurar_utilidades.tex}
+\input{/home/felipe/imdc/scripts/../tex/configuracao/configurar_md.tex}
+\titulo{Modelo de Artigo}
+\autor{I. F. F. dos Santos}
+\begin{document}
+\maketitle
+\textual
+\markdownInput{../textual/001.md}
+\postextual
+\bibliography{../references.bib}
+\markdownInput{../postextual/apendice_01.md}
+\end{document}
