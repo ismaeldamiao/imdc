@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-IMDC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+IMDC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 source "${IMDC_DIR}/scripts/parse_yaml.sh"
-source "${IMDC_DIR}/scripts/tex2pdf.sh"
 
 # ******************
 # Paleta de cores
@@ -71,7 +70,8 @@ done
    exit 2
 }
 
-[ -d "build" ] && rm "build"
+[ -d "build" ] && rm -R "build"
+mkdir build && cd build
 
 ################################################################################
 # Estagio 2: Checar integridade do imdc
@@ -145,43 +145,65 @@ EOF
 
 cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
 \begin{document}
+\pretextual
+EOF
+
+[ "${TYPE}" == "artigo" ] && cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
 \maketitle
 EOF
 
-# Elementos textuais
+[[ "${TYPE}" != "documento" || "${TYPE}" != "livro" ]] && {
 cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
-\textual
+\imprimircapa
+\imprimirfolhaderosto
+\pretextualpreconfigurado
+\pdfbookmark[0]{\contentsname}{toc}
+\tableofcontents*
 EOF
+}
+
+# Elementos textuais
+echo "\textual" >> "${IMDC_DIR}/tex/main.tex"
 
 for i in $(seq -w 001 999); do
-[ -r "textual/${i}.md" ] && cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
-\markdownInput{../textual/${i}.md}
-EOF
+[ -r "../textual/${i}.md" ] && {
+   TEX=$(texlua "${TEXLIVE_BIN}/../../texmf-dist/scripts/markdown/markdown-cli.lua" "../textual/${i}.md")
+   echo "${TEX}" >> "${IMDC_DIR}/tex/main.tex"
+}
 done
 
 # Elementos postextuais
 
 cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
 \postextual
-\bibliography{../references.bib}
+%\bibliography{../references.bib}
 EOF
 
 for i in $(seq -w 01 99); do
-[ -r "postextual/apendice_${i}.md" ] && cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
-\markdownInput{../postextual/apendice_${i}.md}
-EOF
+[ -r "postextual/apendice_${i}.md" ] && {
+   TEX=$(texlua "${IMDC_DIR}/scripts/markdown-cli.lua" texMathDollars=true texMathSingleBackslash=true -- "../postextual/apendice_${i}.md")
+   echo "${TEX}" >> "${IMDC_DIR}/tex/main.tex"
+}
 done
 
 cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
 \end{document}
 EOF
 
-mkdir build; cd build
-ARGS="-pdflua "
-ARGS+="-cd- "
-ARGS+="-bibtex-cond "
-latexmk ${ARGS} "${IMDC_DIR}/tex/main.tex"
-cd ..; mv build/main.pdf "${titulo// /_}.pdf"
-rm -R build
+
+latexmk \
+   -r "${IMDC_DIR}/tex/.latexmkrc" \
+   -pdflatex \
+   -cd- \
+   -l- \
+   -new-viewer- \
+   -view=none \
+   -bibtex-cond \
+   -silent -quiet \
+   -f -g \
+   -logfilewarninglist \
+   "${IMDC_DIR}/tex/main.tex"
+[ -r "main.pdf" ] && { cd ..; mv build/main.pdf "${titulo// /_}.pdf"; }
+#rm -R build
 
 exit 0
