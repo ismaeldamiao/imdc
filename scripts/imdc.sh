@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
 IMDC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
-source "${IMDC_DIR}/scripts/parse_yaml.sh"
+MAIN_TEX="${IMDC_DIR}/tex/main.tex"
 
-# ******************
 # Paleta de cores
-# ******************
 BLACK="\e[30m"
 RED="\e[31m"
 GREEN="\e[32m"
@@ -16,6 +14,8 @@ CYAN="\e[36m"
 WHITE="\e[37m"
 BOLD="\e[1;37m"
 LIGHT="\e[0;37m"
+
+source "${IMDC_DIR}/scripts/parse_yaml.sh"
 
 ################################################################################
 # Estagio 0: Checar argumentos
@@ -46,27 +46,27 @@ done
 [ -f "informacoes.yml" ] && {
    eval $(parse_yaml informacoes.yml)
 } || {
-   echo -e "${RED}Erro: Arquivo 'informacoes.yml' não encontrado.${LIGHT}"
+   echo -e "${BOLD}${RED}Erro: Arquivo 'informacoes.yml' não encontrado.${LIGHT}"
    exit 2
 }
 
 [ -d "pretextual" ] || {
-   echo -e "${RED}Erro: Diretório 'pretextual' não encontrado.${LIGHT}"
+   echo -e "${BOLD}${RED}Erro: Diretório 'pretextual' não encontrado.${LIGHT}"
    exit 2
 }
 
 [ -d "textual" ] || {
-   echo -e "${RED}Erro: Diretório 'textual' não encontrado.${LIGHT}"
+   echo -e "${BOLD}${RED}Erro: Diretório 'textual' não encontrado.${LIGHT}"
    exit 2
 }
 
 [ -d "postextual" ] || {
-   echo -e "${RED}Erro: Diretório 'postextual' não encontrado.${LIGHT}"
+   echo -e "${BOLD}${RED}Erro: Diretório 'postextual' não encontrado.${LIGHT}"
    exit 2
 }
 
 [ -f "references.bib" ] || {
-   echo -e "${RED}Erro: Arquivo 'references.bib' não encontrado.${LIGHT}"
+   echo -e "${BOLD}${RED}Erro: Arquivo 'references.bib' não encontrado.${LIGHT}"
    exit 2
 }
 
@@ -94,16 +94,15 @@ mkdir build && cd build
 
 # Preambulo
 
-[ "${TYPE}" == "artigo" ] && cat > "${IMDC_DIR}/tex/main.tex" <<EOF
-\documentclass[article]{abntex2}
-EOF
+source "${IMDC_DIR}/scripts/utils.sh"
 
-[ "${TYPE}" != "artigo" ] && cat > "${IMDC_DIR}/tex/main.tex" <<EOF
-\documentclass{abntex2}
-EOF
+if [ "${TYPE}" == "artigo" ]; then
+   echo "\documentclass[article]{abntex2}" > "${MAIN_TEX}"
+elif [ "${TYPE}" == "documento" ] || [ "${TYPE}" == "livro" ]; then
+   echo "\documentclass{abntex2}" > "${MAIN_TEX}"
+fi
 
-
-cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
+cat >> "${MAIN_TEX}" <<EOF
 \input{${IMDC_DIR}/tex/configuracao/configurar_abntex.tex}
 \input{${IMDC_DIR}/tex/configuracao/configurar_documento.tex}
 \input{${IMDC_DIR}/tex/configuracao/configurar_fontes.tex}
@@ -111,88 +110,70 @@ cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
 \input{${IMDC_DIR}/tex/configuracao/configurar_md.tex}
 EOF
 
-[ "${autor_1}" != "" ] && autores+="${autor_1}"
+[ "${titulo}" != "" ] && {
+   TITULO=$(utf8_to_tex "${titulo}")
+   echo "\titulo{${TITULO}}" >> "${MAIN_TEX}"
+}
 
+[ "${autor_1}" != "" ] && autores="${autor_1}"
 for i in $(seq 2 20); do
    eval autor=\$\{autor_"$i"\}
    [ "${autor}" != "" ] && autores+=" and ${autor}"
 done
+[ "${autores}" != "" ] && \
+   echo "\autor{${autores}}" >> "${MAIN_TEX}"
 
-for i in $(seq -w 01 99); do
-   [ -r "postextual/apendice_${i}.md" ] && {
-      apendices+=`cat postextual/apendice_${i}.md`
-      apendices+=`printf "\n\n"`
-   }
-done
+[ "${orientador}" != "" ] && \
+   echo "\autor{${orientador}}" >> "${MAIN_TEX}"
 
-[ "${titulo}" != "" ] && cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
-\titulo{${titulo}}
-EOF
-
-[ "${autores}" != "" ] && cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
-\autor{${autores}}
-EOF
-
-[ "${orientador}" != "" ] && cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
-\autor{${orientador}}
-EOF
-
-[ "${instituicao}" != "" ] && cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
-\autor{${instituicao}}
-EOF
+[ "${instituicao}" != "" ] && \
+   echo "\autor{${instituicao}}" >> "${MAIN_TEX}"
 
 # Elementos pretextuais
 
-cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
+cat >> "${MAIN_TEX}" <<EOF
 \begin{document}
 \pretextual
 EOF
 
-[ "${TYPE}" == "artigo" ] && cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
-\maketitle
-EOF
+[ "${TYPE}" == "artigo" ] && echo "\maketitle" >> "${MAIN_TEX}"
 
-[[ "${TYPE}" != "documento" || "${TYPE}" != "livro" ]] && {
-cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
+if [ "${TYPE}" == "documento" ] || [ "${TYPE}" == "livro" ]; then
+cat >> "${MAIN_TEX}" <<EOF
 \imprimircapa
 \imprimirfolhaderosto
 \pretextualpreconfigurado
 \pdfbookmark[0]{\contentsname}{toc}
 \tableofcontents*
 EOF
-}
+fi
 
 # Elementos textuais
-echo "\textual" >> "${IMDC_DIR}/tex/main.tex"
+echo "\textual" >> "${MAIN_TEX}"
 
 for i in $(seq -w 001 999); do
-[ -r "../textual/${i}.md" ] && {
-   TEX=$(texlua "${TEXLIVE_BIN}/../../texmf-dist/scripts/markdown/markdown-cli.lua" "../textual/${i}.md")
-   echo "${TEX}" >> "${IMDC_DIR}/tex/main.tex"
-}
+   [ -r "../textual/${i}.md" ] && \
+      echo "\input{$(get_tex ../textual/${i}.md)}" >> "${MAIN_TEX}"
 done
 
 # Elementos postextuais
 
-cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
+cat >> "${MAIN_TEX}" <<EOF
 \postextual
 %\bibliography{../references.bib}
 EOF
 
 for i in $(seq -w 01 99); do
-[ -r "postextual/apendice_${i}.md" ] && {
-   TEX=$(texlua "${IMDC_DIR}/scripts/markdown-cli.lua" texMathDollars=true texMathSingleBackslash=true -- "../postextual/apendice_${i}.md")
-   echo "${TEX}" >> "${IMDC_DIR}/tex/main.tex"
-}
+   [ -r "../postextual/apendice_${i}.md" ] && \
+      echo "\input{$(get_tex ../postextual/apendice_${i}.md)}" >> "${MAIN_TEX}"
 done
 
-cat >> "${IMDC_DIR}/tex/main.tex" <<EOF
+cat >> "${MAIN_TEX}" <<EOF
 \end{document}
 EOF
 
-
+#-r "${IMDC_DIR}/tex/.latexmkrc" \
 latexmk \
-   -r "${IMDC_DIR}/tex/.latexmkrc" \
    -pdflatex \
    -cd- \
    -l- \
@@ -202,7 +183,7 @@ latexmk \
    -silent -quiet \
    -f -g \
    -logfilewarninglist \
-   "${IMDC_DIR}/tex/main.tex"
+   "${MAIN_TEX}"
 [ -r "main.pdf" ] && { cd ..; mv build/main.pdf "${titulo// /_}.pdf"; }
 #rm -R build
 

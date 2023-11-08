@@ -58,7 +58,7 @@
 -- those in the standard .ins files.
 --
 local metadata = {
-    version   = "2.21.0-0-gee15b88",
+    version   = "2.23.0-0-g0b22f91",
     comment   = "A module for the conversion from markdown to plain TeX",
     author    = "John MacFarlane, Hans Hagen, Vít Novotný",
     copyright = {"2009-2016 John MacFarlane, Hans Hagen",
@@ -97,9 +97,11 @@ defaultOptions.hashEnumerators = false
 defaultOptions.headerAttributes = false
 defaultOptions.html = false
 defaultOptions.hybrid = false
+defaultOptions.inlineCodeAttributes = false
 defaultOptions.inlineFootnotes = false
 defaultOptions.inlineNotes = false
 defaultOptions.jekyllData = false
+defaultOptions.linkAttributes = false
 defaultOptions.lineBlocks = false
 defaultOptions.footnotes = false
 defaultOptions.notes = false
@@ -119,6 +121,8 @@ defaultOptions.tableCaptions = false
 defaultOptions.taskLists = false
 defaultOptions.texComments = false
 defaultOptions.texMathDollars = false
+defaultOptions.texMathDoubleBackslash = false
+defaultOptions.texMathSingleBackslash = false
 defaultOptions.tightLists = true
 defaultOptions.underscores = true
 
@@ -242,9 +246,16 @@ local lfs = require("lfs")
 if options.cacheDir and not lfs.isdir(options.cacheDir) then
   assert(lfs.mkdir(options["cacheDir"]))
 end
-
-local ran_ok, kpse = pcall(require, "kpse")
-if ran_ok then kpse.set_program_name("luatex") end
+local kpse
+(function()
+  local should_initialize = package.loaded.kpse == nil
+                       or tex.initialize ~= nil
+  local ran_ok
+  ran_ok, kpse = pcall(require, "kpse")
+  if ran_ok and should_initialize then
+    kpse.set_program_name("luatex")
+  end
+end)()
 local md = require("markdown")
 if metadata.version ~= md.metadata.version then
   warn("markdown-cli.lua " .. metadata.version .. " used with " ..
