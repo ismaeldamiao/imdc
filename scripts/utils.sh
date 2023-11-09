@@ -13,14 +13,17 @@ function utf8_to_tex() {
    STR=$(replace "é" "\\'{e}" "${STR}")
    STR=$(replace "í" "\\'{i}" "${STR}")
    STR=$(replace "ó" "\\'{o}" "${STR}")
+   STR=$(replace "õ" "\\~{o}" "${STR}")
+   STR=$(replace "ô" "\\^{o}" "${STR}")
    STR=$(replace "ú" "\\'{u}" "${STR}")
    STR=$(replace "ç" "\\c{c}" "${STR}")
+   STR=$(replace "±" "\\pm{}" "${STR}")
    echo "${STR}"
 }
 
 function get_tex() {
    cp "${IMDC_DIR}/scripts/markdown.lua" ./
-   TEX=$(texlua "${IMDC_DIR}/scripts/markdown-cli.lua" texMathDollars=true texMathSingleBackslash=true -- "${1}")
+   TEX=$(texlua "${IMDC_DIR}/scripts/markdown-cli.lua" citations=true pipeTables=true texMathDollars=true texMathSingleBackslash=true -- "${1}")
    TEX="${TEX#*./}"
    TEX="${TEX%\}\\relax}"
    TEXT=$(cat "${TEX}")
@@ -30,3 +33,4 @@ function get_tex() {
    TEX="$(basename ${1%.*}).tex"
    echo "${TEX}"
 }
+

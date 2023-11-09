@@ -92,94 +92,21 @@ mkdir build && cd build
 # Estagio 4: Escrever main.tex e compilar
 ################################################################################
 
-# Preambulo
-
 source "${IMDC_DIR}/scripts/utils.sh"
 
-if [ "${TYPE}" == "artigo" ]; then
-   echo "\documentclass[article]{abntex2}" > "${MAIN_TEX}"
-elif [ "${TYPE}" == "documento" ] || [ "${TYPE}" == "livro" ]; then
-   echo "\documentclass{abntex2}" > "${MAIN_TEX}"
-fi
+[ "${TYPE}" == "artigo" ] && \
+   source "${IMDC_DIR}/scripts/artigo.tex.sh" > "${MAIN_TEX}"
 
-cat >> "${MAIN_TEX}" <<EOF
-\input{${IMDC_DIR}/tex/configuracao/configurar_abntex.tex}
-\input{${IMDC_DIR}/tex/configuracao/configurar_documento.tex}
-\input{${IMDC_DIR}/tex/configuracao/configurar_fontes.tex}
-\input{${IMDC_DIR}/tex/configuracao/configurar_utilidades.tex}
-\input{${IMDC_DIR}/tex/configuracao/configurar_md.tex}
-EOF
-
-[ "${titulo}" != "" ] && {
-   TITULO=$(utf8_to_tex "${titulo}")
-   echo "\titulo{${TITULO}}" >> "${MAIN_TEX}"
-}
-
-[ "${autor_1}" != "" ] && autores="${autor_1}"
-for i in $(seq 2 20); do
-   eval autor=\$\{autor_"$i"\}
-   [ "${autor}" != "" ] && autores+=" and ${autor}"
-done
-[ "${autores}" != "" ] && \
-   echo "\autor{${autores}}" >> "${MAIN_TEX}"
-
-[ "${orientador}" != "" ] && \
-   echo "\autor{${orientador}}" >> "${MAIN_TEX}"
-
-[ "${instituicao}" != "" ] && \
-   echo "\autor{${instituicao}}" >> "${MAIN_TEX}"
-
-# Elementos pretextuais
-
-cat >> "${MAIN_TEX}" <<EOF
-\begin{document}
-\pretextual
-EOF
-
-[ "${TYPE}" == "artigo" ] && echo "\maketitle" >> "${MAIN_TEX}"
-
-if [ "${TYPE}" == "documento" ] || [ "${TYPE}" == "livro" ]; then
-cat >> "${MAIN_TEX}" <<EOF
-\imprimircapa
-\imprimirfolhaderosto
-\pretextualpreconfigurado
-\pdfbookmark[0]{\contentsname}{toc}
-\tableofcontents*
-EOF
-fi
-
-# Elementos textuais
-echo "\textual" >> "${MAIN_TEX}"
-
-for i in $(seq -w 001 999); do
-   [ -r "../textual/${i}.md" ] && \
-      echo "\input{$(get_tex ../textual/${i}.md)}" >> "${MAIN_TEX}"
-done
-
-# Elementos postextuais
-
-cat >> "${MAIN_TEX}" <<EOF
-\postextual
-%\bibliography{../references.bib}
-EOF
-
-for i in $(seq -w 01 99); do
-   [ -r "../postextual/apendice_${i}.md" ] && \
-      echo "\input{$(get_tex ../postextual/apendice_${i}.md)}" >> "${MAIN_TEX}"
-done
-
-cat >> "${MAIN_TEX}" <<EOF
-\end{document}
-EOF
-
-#-r "${IMDC_DIR}/tex/.latexmkrc" \
 latexmk \
+   -r "${IMDC_DIR}/tex/rc" \
+   -pdf- \
+   -silent -quiet \
+   -f -g \
+   -logfilewarninglist \
+   "${MAIN_TEX}"
+latexmk \
+   -r "${IMDC_DIR}/tex/rc" \
    -pdflatex \
-   -cd- \
-   -l- \
-   -new-viewer- \
-   -view=none \
-   -bibtex-cond \
    -silent -quiet \
    -f -g \
    -logfilewarninglist \

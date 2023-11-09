@@ -36,7 +36,7 @@
 \markdownSetup{
    smartEllipses,
    fencedCode,
-   citations,
+   citations=true,
    inlineFootnotes,
    headerAttributes,
    pipeTables,
@@ -57,7 +57,7 @@
          \begin{figure}[H]
             \caption{#4}
             \begin{center}
-               \includegraphics{#2}
+               \makebox[\textwidth]{\includegraphics[width=.6\textwidth]{#2}}
             \end{center}
             \legend{~}
             \label{fig:#1}
@@ -66,10 +66,7 @@
       table = {
          \markdownLaTeXTable={}%
          \markdownLaTeXTableAlignment={}%
-         \markdownLaTeXTableEnd={%
-            \markdownLaTeXBottomRule
-            \end{tabular}
-         }%
+         \addto@hook\markdownLaTeXTable{\begin{tabular}}%
          \ifx\empty#1\empty\else
             \addto@hook\markdownLaTeXTable{%
                \begin{table}[H]
@@ -80,7 +77,10 @@
                \end{table}
             }%
          \fi
-         \addto@hook\markdownLaTeXTable{\begin{tabular}}%
+         \markdownLaTeXTableEnd={%
+            \markdownLaTeXBottomRule
+            \end{tabular}
+         }%
          \markdownLaTeXRowCounter=0%
          \markdownLaTeXRowTotal=#2%
          \markdownLaTeXColumnTotal=#3%

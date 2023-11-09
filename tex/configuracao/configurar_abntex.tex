@@ -38,17 +38,14 @@
 \renewenvironment{dedicatoria}{}{}
 \renewenvironment{agradecimentos}{}{}
 \renewenvironment{epigrafe}{}{}
-\renewenvironment{resumo}{}{}
 
 \providecommand{\imprimirdedicatoria}{}
 \providecommand{\imprimiragradecimentos}{}
 \providecommand{\imprimirepigrafe}{}
-\providecommand{\imprimirresumo}{}
 
 \renewcommand{\dedicatoria}[1]{\renewcommand{\imprimirdedicatoria}{#1}}
 \renewcommand{\agradecimentos}[1]{\renewcommand{\imprimiragradecimentos}{#1}}
 \renewcommand{\epigrafe}[1]{\renewcommand{\imprimirepigrafe}{#1}}
-\renewcommand{\resumo}[1]{\renewcommand{\imprimirresumo}{#1}}
 
 
 \makeatletter
@@ -78,6 +75,9 @@
    }
 }
 \makeatother
+
+\usepackage[alf]{abntex2cite} % Citações padrão ABNT, em ordem alfabética.
+\citebrackets()          % Citações com coxetes.
 
 % ---
 % Impressão da Capa
